@@ -4,19 +4,27 @@
  */
 package com.mycompany.registrodepessoas;
 
+import java.io.IOException;
+import javax.swing.JOptionPane;
+import javax.swing.table.TableModel;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+
 /**
  *
  * @author joaod
  */
 public class pdfFrame extends javax.swing.JFrame {
-
     /**
      * Creates new form pdfFrame
      */
     public pdfFrame() {
         initComponents();
     }
-
+    javax.swing.JTable table =RegistrosFrame.getTable();
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -28,7 +36,7 @@ public class pdfFrame extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
+        nomeEntry = new javax.swing.JTextField();
         criarBt = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
@@ -42,7 +50,7 @@ public class pdfFrame extends javax.swing.JFrame {
         jLabel2.setForeground(new java.awt.Color(255, 255, 255));
         jLabel2.setText("Nome do arquivo");
 
-        jTextField1.setFont(new java.awt.Font("Calibri Light", 0, 12)); // NOI18N
+        nomeEntry.setFont(new java.awt.Font("Calibri Light", 0, 12)); // NOI18N
 
         criarBt.setBackground(new java.awt.Color(74, 131, 150));
         criarBt.setFont(new java.awt.Font("Calibri Light", 0, 18)); // NOI18N
@@ -65,7 +73,7 @@ public class pdfFrame extends javax.swing.JFrame {
                         .addGap(33, 33, 33)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel2)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(nomeEntry, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(64, 64, 64)
                         .addComponent(criarBt, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -77,7 +85,7 @@ public class pdfFrame extends javax.swing.JFrame {
                 .addGap(72, 72, 72)
                 .addComponent(jLabel2)
                 .addGap(34, 34, 34)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(nomeEntry, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 40, Short.MAX_VALUE)
                 .addComponent(criarBt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(37, 37, 37))
@@ -112,8 +120,73 @@ public class pdfFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    
+    private boolean exportarPdf(String nomeArquivo){
+        if(nomeArquivo.equals("")){
+            return false;
+        }
+        else{
+            try(PDDocument doc=new PDDocument()){
+                PDPage pg=new PDPage(PDRectangle.A4);
+                PDPageContentStream contentStream = new PDPageContentStream(doc, pg);
+                doc.addPage(pg);
+                // Fonte e margens
+                contentStream.setFont(PDType1Font.HELVETICA, 8);
+                float margin = 50;
+                float yStart = PDRectangle.A4.getHeight() - margin;
+                float yPosition = yStart;
+                float rowHeight = 20;
+                float tableWidth = pg.getMediaBox().getWidth() - 2 * margin;
+                int cols = table.getColumnCount();
+                float colWidth = tableWidth / (float) cols;
+                TableModel model = table.getModel();
+                    for (int i = 0; i < cols; i++) {
+                    String columnName = model.getColumnName(i);
+                    contentStream.beginText();
+                    contentStream.newLineAtOffset(margin + i * colWidth, yPosition);
+                    contentStream.showText(columnName);
+                    contentStream.endText();
+                }
+
+                yPosition -= rowHeight;
+
+                // Linhas
+                for (int row = 0; row < model.getRowCount(); row++) {
+                    for (int col = 0; col < cols; col++) {
+                        Object value = model.getValueAt(row, col);
+                        String text = (value != null) ? value.toString() : "";
+                        contentStream.beginText();
+                        contentStream.newLineAtOffset(margin + col * colWidth, yPosition);
+                        contentStream.showText(text);
+                        contentStream.endText();
+                    }
+                    yPosition -= rowHeight;
+
+                    // Se sair da página, ignora por enquanto
+                    if (yPosition < margin) break; // dá pra adicionar mais páginas, se quiser
+                }
+
+                contentStream.close();
+                doc.save(nomeArquivo);
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        return true;
+    }
+    
     private void criarBtActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_criarBtActionPerformed
-        
+
+        String nome =nomeEntry.getText()+".pdf";
+        if(exportarPdf(nome)){
+            JOptionPane.showMessageDialog(this, (nome+" criado com sucesso!"), "=)", JOptionPane.INFORMATION_MESSAGE);
+            this.dispose();
+        }
+        else{
+            JOptionPane.showMessageDialog(this, (nome+"Coloque algum nome no arquivo"), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_criarBtActionPerformed
 
     /**
@@ -153,6 +226,6 @@ public class pdfFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel3;
-    private javax.swing.JTextField jTextField1;
+    private javax.swing.JTextField nomeEntry;
     // End of variables declaration//GEN-END:variables
 }
